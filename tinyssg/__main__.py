@@ -103,7 +103,8 @@ class TinySSGUtility:
 
         print(message)
 
-    def error_print(cla, message: str) -> None:
+    @classmethod
+    def error_print(cls, message: str) -> None:
         """
         Output error message
         """
@@ -482,7 +483,7 @@ class TinySSGDebug:
         """
         Output the server stop message
         """
-        TinySSGUtility.error_print('Server return code:', process.poll())
+        TinySSGUtility.error_print(f"Server return code:{process.poll()}")
         TinySSGUtility.error_print('Server Output:\n')
         TinySSGUtility.error_print(process.stdout.read() if process.stdout else '')
         TinySSGUtility.error_print(process.stderr.read() if process.stderr else '')
@@ -566,13 +567,20 @@ class TinySSGLauncher:
         """
         url = f"http://localhost:{args['port']}/{args['output']}/"
 
+        is_jupyter = False
+
         try:
             from IPython import get_ipython  # type: ignore
             env = get_ipython().__class__.__name__
             if env == 'ZMQInteractiveShell':
-                from IPython import display
-                display.display(display.IFrame(url, width=args['jwidth'], height=args['jheight']))
+                is_jupyter = True
         except:  # noqa: E722
+            pass
+
+        if is_jupyter:
+            from IPython import display
+            display.display(display.IFrame(url, width=args['jwidth'], height=args['jheight']))
+        else:
             webbrowser.open(url)
 
     @classmethod
@@ -677,7 +685,7 @@ class TinySSG:
         """
         Set the argument parser
         """
-        parser = argparse.ArgumentParser(description='TinySSG Simple Static Site Generate Tool')
+        parser = argparse.ArgumentParser(prog='python -m tinyssg', description='TinySSG Simple Static Site Generate Tool')
         parser.add_argument('mode', choices=['dev', 'gen', 'cls', 'serv', 'servreload', 'config'], help='Select the mode to run (gen = Generate HTML files, dev = Run the debug server)')
         parser.add_argument('--port', '-P', type=int, default=8000, help='Port number for the debug server')
         parser.add_argument('--page', '-p', type=str, default='pages', help='Page file path')
