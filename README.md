@@ -72,7 +72,7 @@ If you use the markdown library here to describe the process of conversion, you 
 
 Each page must be defined individually, but since this is a simple Python class, if you want to apply it to multiple pages, you can create a class that defines the common parts and inherit it to easily apply it without copying any code.
 
-### Start local server for development.
+### Start local server for development
 
 ```bash
 python -m tinyssg dev

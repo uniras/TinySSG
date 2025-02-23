@@ -278,15 +278,11 @@ class TinySSGGenerator:
         result = {}
 
         for key, value in route.items():
-
             if isinstance(value, dict):
                 current_path = f"{dict_path}/{key}"
                 result[key] = cls.traverse_route(value, current_path)
             else:
                 page = value()
-                page.name = key
-                if not isinstance(page.name, str) or len(page.name) == 0:
-                    raise TinySSGException('The name must be a non-empty string.')
                 result[key] = cls.create_content(page)
 
         return result
