@@ -18,11 +18,11 @@ pip install tinyssg
 Configure the directory as follows.The directory name can be changed with an optional argument.
 
 ```text
-  |-- pages Place Python files for SSG deployment.
-  |-- libs Place Python files that are not SSG target files (e.g. libraries).
-  |-- static Place static files that are not subject to SSG (css, images, etc.)
-  |-- dist This is the directory where SSG results will be output.The contents of this directory can be published as a web site by placing it on a web server.
-        |-- static The static directory is copied to this directory.
+  |-- pages         Place Python files for SSG deployment.
+  |-- libs          Place Python files that are not SSG target files (e.g. libraries).
+  |-- static        Place static files that are not subject to SSG (css, images, etc.)
+  |-- dist          This is the directory where SSG results will be output.The contents of this directory can be published as a web site by placing it on a web server.
+        |-- static  The static directory is copied to this directory.
 ````
 
 ### Creating pages
