@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import textwrap
 import time
 import webbrowser
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -40,6 +41,12 @@ class TinySSGPage:
         """
         raise TinySSGException(f"The Page class corresponding to {self.__class__.__name__} does not appear to be implemented correctly.")
 
+    def indent(self, src: str, indent: int = 0) -> str:
+        """
+        Indentation process
+        """
+        return TinySSGUtility.set_indent(src, indent)
+
 
 class TinySSGException(Exception):
     """
@@ -61,6 +68,95 @@ class TinySSGUtility:
         for key, value in data.items():
             result = re.sub(start_delimiter + re.escape(key) + end_delimiter, str(value), result)
         return result
+
+    @classmethod
+    def set_indent(cls, src: str, indent: int = 0) -> str:
+        """
+        Set the indent level of the text
+        """
+        return textwrap.indent(textwrap.dedent(src).strip(), (' ' * indent)) + '\n'
+
+    @classmethod
+    def merge_dict(cls, base: dict, add: dict, overwrite: bool = True, extend: bool = True, reverse: bool = False) -> dict:
+        """
+        Merge dictionaries
+        """
+        if not isinstance(base, dict) or not isinstance(add, dict):
+            raise ValueError('Both base and add must be dictionary type.')
+
+        result = base.copy()
+
+        for key, value in add.items():
+            TinySSGUtility.merge_dict_value(result, key, value, overwrite, extend, reverse)
+
+        return result
+
+    @classmethod
+    def extend_list(cls, base: any, add: any) -> list:
+        """
+        List Expansion
+        """
+        if base is None:
+            return add if isinstance(add, list) else [add]
+
+        result = base.copy() if isinstance(base, list) else [base]
+
+        if isinstance(add, list):
+            result.extend(add)
+        else:
+            result.append(add)
+
+        return result
+
+    @classmethod
+    def merge_dict_value(cls, base: any, key: str, value: any, overwrite: bool = True, extend: bool = True, reverse: bool = False) -> None:
+        """
+        Merge dictionary values (type-based merging process)
+        """
+        if not isinstance(base, dict):
+            raise ValueError('Base must be dictionary type.')
+
+        if key not in base:
+            base[key] = value
+        elif isinstance(base[key], dict) and isinstance(value, dict):
+            base[key] = TinySSGUtility.merge_dict(base[key], value, overwrite, extend, reverse)
+        elif extend and (isinstance(base[key], list) or isinstance(value, list)):
+            if reverse:
+                base[key] = TinySSGUtility.extend_list(value, base[key])
+            else:
+                base[key] = TinySSGUtility.extend_list(base[key], value)
+        elif overwrite:
+            base[key] = value
+
+    @classmethod
+    def filter_json_serializable(cls, data):
+        """
+        Filter only JSON-able objects
+        """
+        if isinstance(data, (dict, list, str, int, float, bool, type(None))):
+            if isinstance(data, dict):
+                return {k: TinySSGUtility.filter_json_serializable(v) for k, v in data.items()}
+            elif isinstance(data, list):
+                return [TinySSGUtility.filter_json_serializable(v) for v in data]
+            else:
+                return data
+        return None
+
+    @classmethod
+    def get_serialize_json(cls, data: dict, jsonindent: any = 4) -> str:
+        """
+        Only JSON-able objects from the dictionary are converted to JSON.
+        """
+        if not isinstance(data, dict):
+            raise ValueError('The specified variable is not a dictionary type.')
+        return json.dumps(TinySSGUtility.filter_json_serializable(data), indent=jsonindent)
+
+    @classmethod
+    def exclude_double_underscore(cls, data: dict) -> dict:
+        """
+        Exclude keys beginning with __
+        """
+        return {k: v for k, v in data.items() if not k.startswith('__')}
 
     @classmethod
     def get_fullpath(cls, args: dict, pathkey: str = '') -> str:

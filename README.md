@@ -23,7 +23,7 @@ Configure the directory as follows.The directory name can be changed with an opt
   |-- static        Place static files that are not subject to SSG (css, images, etc.)
   |-- dist          This is the directory where SSG results will be output.The contents of this directory can be published as a web site by placing it on a web server.
         |-- static  The static directory is copied to this directory.
-````
+```
 
 ### Creating pages
 
@@ -39,19 +39,20 @@ class IndexPage(TinySSGPage):.
             'content': 'Hello, World!'
         }
 
-    def template(self): return
-        return '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>{{ title }}</title>
-</head>
-<body>
-  <h1>{{ title }}</h1>
-  <p>{{ content }}</p>
-</body>
-</html>'''
+    def template(self):
+        return self.indent("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>{{ title }}</title>
+            </head>
+            <body>
+              <h1>{{ title }}</h1>
+              <p>{{ content }}</p>
+            </body>
+            </html>
+        """, 0)
 ```
 
 Building it will generate an HTML file with the same name as the Python file.
@@ -112,4 +113,87 @@ Options:
   --noreload, -r              Don't restart development server automatically.
   --noopen, -N                Do not open browser when starting development server
   --curdir CURDIR, -C CURDIR  Specify current directory.
+```
+
+## FAQ
+
+### **Q.** How can I use jinja2 as a template engine?
+
+**A.** Override the `render` method to use jinja2 to render templates.
+
+lib/jinja2_page.py
+
+```python
+from tinyssg import TinySSGPage
+from jinja2 import Template
+
+class Jinja2Page(TinySSGPage):
+    def render(self, src: str, data: dict) -> str:
+        template = Template(src)
+        return template.render(data)
+```
+
+pages/index.py
+
+```python
+from tinyssg import TinySSGPage
+from lib.jinja2_page import Jinja2Page
+
+class IndexPage(Jinja2Page):
+    def query(self):
+        return {
+            'title': 'Index', 'content': 'Hello, World!'
+        }
+
+    def template(self):
+        return self.indent("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>{{ title }}</title>
+            </head>
+            <body>
+              <h1>{{ title }}</h1>
+              <p>{{ content }}</p>
+            </body>
+            </html>
+        """, 0)
+```
+
+### **Q.** How do I use Markdown to write in my templates?
+
+**A.** Override the `translate` method and use the Markdown library to convert it to HTML.
+
+lib/markdown_page.py
+
+```python
+from tinyssg import TinySSGPage
+import markdown
+
+class MarkdownPage(TinySSGPage):
+    def translate(self, basestr: str) -> str:
+        return markdown.markdown(basestr)
+```
+
+pages/index.py
+
+```python
+from tinyssg import TinySSGPage
+from lib.markdown_page import MarkdownPage
+
+class IndexPage(MarkdownPage):
+    def query(self):
+        return {
+            'title': 'Index', 'content': 'Hello, World!'
+        }
+
+    def template(self):
+        return self.indent("""
+            # {{ title }}
+
+            {{ content }}
+
+            This is **Markdown** template.
+        """, 0)
 ```

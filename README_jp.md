@@ -40,18 +40,19 @@ class IndexPage(TinySSGPage):
         }
 
     def template(self):
-        return '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>{{ title }}</title>
-</head>
-<body>
-  <h1>{{ title }}</h1>
-  <p>{{ content }}</p>
-</body>
-</html>'''
+        return self.indent("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>{{ title }}</title>
+            </head>
+            <body>
+              <h1>{{ title }}</h1>
+              <p>{{ content }}</p>
+            </body>
+            </html>
+        """, 0)
 ```
 
 これをビルドするとPythonファイルと同じ名前のHTMLファイルが生成されます。
@@ -112,4 +113,87 @@ usage: python -m tinyssg [--port PORT] [--page PAGE] [--static STATIC] [--lib LI
   --noreload, -r                  開発用サーバーの自動再起動をしない
   --noopen, -N                    開発用サーバー起動時にブラウザを開かない
   --curdir CURDIR, -C CURDIR      カレントディレクトリの指定
+```
+
+## FAQ
+
+### **Q.** テンプレートエンジンとしてjinja2を使うにはどうすればいいですか？
+
+**A.** `TinySSGPage`クラスを継承したクラスで`render`メソッドをオーバーライドして、jinja2を使ってテンプレートをレンダリングするようにしてください。
+
+lib/jinja2_page.py
+
+```python
+from tinyssg import TinySSGPage
+from jinja2 import Template
+
+class Jinja2Page(TinySSGPage):
+    def render(self, src: str, data: dict) -> str:
+        template = Template(src)
+        return template.render(data)
+```
+
+pages/index.py
+
+```python
+from tinyssg import TinySSGPage
+from lib.jinja2_page import Jinja2Page
+
+class IndexPage(Jinja2Page):
+    def query(self):
+        return {
+            'title': 'Index', 'content': 'Hello, World!'
+        }
+
+    def template(self):
+        return self.indent("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>{{ title }}</title>
+            </head>
+            <body>
+              <h1>{{ title }}</h1>
+              <p>{{ content }}</p>
+            </body>
+            </html>
+        """, 0)
+```
+
+### **Q.** テンプレートにMarkdownを使って記述するにはどうすればいいですか？
+
+**A.** `translate`メソッドをオーバーライドして、Markdownライブラリを使ってHTMLに変換するようにしてください。
+
+lib/markdown_page.py
+
+```python
+from tinyssg import TinySSGPage
+import markdown
+
+class MarkdownPage(TinySSGPage):
+    def translate(self, basestr: str) -> str:
+        return markdown.markdown(basestr)
+```
+
+pages/index.py
+
+```python
+from tinyssg import TinySSGPage
+from lib.markdown_page import MarkdownPage
+
+class IndexPage(MarkdownPage):
+    def query(self):
+        return {
+            'title': 'Index', 'content': 'Hello, World!'
+        }
+
+    def template(self):
+        return self.indent("""
+            # {{ title }}
+
+            {{ content }}
+
+            This is **Markdown** template.
+        """, 0)
 ```
