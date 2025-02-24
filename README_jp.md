@@ -33,13 +33,13 @@ pip install tinyssg
 from tinyssg import TinySSGPage
 
 class IndexPage(TinySSGPage):
-    def query(self):
+    def query(self) -> any:
         return {
             'title': 'Index',
             'content': 'Hello, World!'
         }
 
-    def template(self):
+    def template(self) -> str:
         return self.indent("""
             <!DOCTYPE html>
             <html>
@@ -94,7 +94,6 @@ python -m tinyssg gen
 ### オプション(抜粋)
 
 ```text
-
 usage: python -m tinyssg [--port PORT] [--page PAGE] [--static STATIC] [--lib LIB] [--input INPUT] [--output OUTPUT] [--wait WAIT] [--nolog] [--noreload] [--noopen] [--curdir CURDIR] [モード]
 
 モード:
@@ -119,7 +118,7 @@ usage: python -m tinyssg [--port PORT] [--page PAGE] [--static STATIC] [--lib LI
 
 ### **Q.** テンプレートエンジンとしてjinja2を使うにはどうすればいいですか？
 
-**A.** `TinySSGPage`クラスを継承したクラスで`render`メソッドをオーバーライドして、jinja2を使ってテンプレートをレンダリングするようにしてください。
+**A.** `render`メソッドをオーバーライドして、jinja2を使ってテンプレートをレンダリングするようにしてください。
 
 lib/jinja2_page.py
 
@@ -140,12 +139,12 @@ from tinyssg import TinySSGPage
 from lib.jinja2_page import Jinja2Page
 
 class IndexPage(Jinja2Page):
-    def query(self):
+    def query(self) -> any:
         return {
             'title': 'Index', 'content': 'Hello, World!'
         }
 
-    def template(self):
+    def template(self) -> str:
         return self.indent("""
             <!DOCTYPE html>
             <html>
@@ -183,12 +182,12 @@ from tinyssg import TinySSGPage
 from lib.markdown_page import MarkdownPage
 
 class IndexPage(MarkdownPage):
-    def query(self):
+    def query(self) -> any:
         return {
             'title': 'Index', 'content': 'Hello, World!'
         }
 
-    def template(self):
+    def template(self) -> str:
         return self.indent("""
             # {{ title }}
 

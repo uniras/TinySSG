@@ -33,13 +33,13 @@ Create a Python file in the `pages` directory and create a class that extends th
 from tinyssg import TinySSGPage
 
 class IndexPage(TinySSGPage):.
-    def query(self):.
+    def query(self) -> any:
         return {
             'title': 'Index', 'content': 'Hello, World!
             'content': 'Hello, World!'
         }
 
-    def template(self):
+    def template(self) -> str:
         return self.indent("""
             <!DOCTYPE html>
             <html>
@@ -79,7 +79,7 @@ Each page must be defined individually, but since this is a simple Python class,
 python -m tinyssg dev
 ```
 
-The local server for development will be started.You can see the generated HTML by accessing ``http://localhost:8000``.
+The local server for development will be started.You can see the generated HTML by accessing `http://localhost:8000`.
 
 If you change files in the `pages`, `libs`, or `static` directories, the server will automatically restart to reflect the changes.
 
@@ -94,7 +94,6 @@ HTML files will be generated in the `dist` directory.
 ### options (excerpt)
 
 ```text
-
 usage: python -m tinyssg [--page PAGE] [--static STATIC] [--lib LIB] [--input INPUT] [--output OUTPUT] [--port PORT] [--wait WAIT] [--nolog] [--noreloadnoreload] [--noopen] [--curdir CURDIR] [mode]
 
 MODE:
@@ -140,12 +139,12 @@ from tinyssg import TinySSGPage
 from lib.jinja2_page import Jinja2Page
 
 class IndexPage(Jinja2Page):
-    def query(self):
+    def query(self) -> any:
         return {
             'title': 'Index', 'content': 'Hello, World!'
         }
 
-    def template(self):
+    def template(self) -> str:
         return self.indent("""
             <!DOCTYPE html>
             <html>
@@ -183,12 +182,12 @@ from tinyssg import TinySSGPage
 from lib.markdown_page import MarkdownPage
 
 class IndexPage(MarkdownPage):
-    def query(self):
+    def query(self) -> any:
         return {
             'title': 'Index', 'content': 'Hello, World!'
         }
 
-    def template(self):
+    def template(self) -> str:
         return self.indent("""
             # {{ title }}
 
