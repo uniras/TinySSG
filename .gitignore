@@ -4,3 +4,5 @@ dist/
 test/
 __pycache__/
 deploy.bat
+*.lnk
+*.log

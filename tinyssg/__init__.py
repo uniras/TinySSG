@@ -159,17 +159,17 @@ class TinySSGUtility:
         return {k: v for k, v in data.items() if not k.startswith('__')}
 
     @classmethod
-    def get_fullpath(cls, args: dict, pathkey: str = '') -> str:
+    def get_fullpath(cls, pathkey: str = '') -> str:
         """
         Get the full path from the relative path
         """
-        if isinstance(args['curdir'], str) and len(args['curdir']) > 0:
-            basedir = args['curdir']
+        if isinstance(TinySSG.args['curdir'], str) and len(TinySSG.args['curdir']) > 0:
+            basedir = TinySSG.args['curdir']
         else:
             basedir = os.getcwd()
 
-        if isinstance(args[pathkey], str) and len(args[pathkey]) > 0:
-            result = os.path.join(basedir, args[pathkey])
+        if isinstance(TinySSG.args[pathkey], str) and len(TinySSG.args[pathkey]) > 0:
+            result = os.path.join(basedir, TinySSG.args[pathkey])
         else:
             result = basedir
 
@@ -184,11 +184,11 @@ class TinySSGUtility:
             shutil.rmtree(output_full_path)
 
     @classmethod
-    def clear_start(cls, args: dict) -> None:
+    def clear_start(cls) -> None:
         """
         Delete the output directory
         """
-        output_full_path = cls.get_fullpath(args, 'output')
+        output_full_path = cls.get_fullpath('output')
         cls.clear_output(output_full_path)
 
     @classmethod
@@ -196,22 +196,17 @@ class TinySSGUtility:
         """
         Output log message (Console Execution Only)
         """
-        try:
-            from IPython import get_ipython  # type: ignore
-            env = get_ipython().__class__.__name__
-            if env == 'ZMQInteractiveShell':
-                return
-        except:  # noqa: E722
-            pass
+        if TinySSG.args['nolog']:
+            return
 
-        print(message)
+        print(message, flush=True)
 
     @classmethod
     def error_print(cls, message: str) -> None:
         """
         Output error message
         """
-        print(message)
+        print(message, flush=True)
 
 
 class TinySSGGenerator:
@@ -265,12 +260,12 @@ class TinySSGGenerator:
         return convert_filename == convert_input_file
 
     @classmethod
-    def search_route(cls, args: dict) -> dict:
+    def search_route(cls) -> dict:
         """
         Search for Page classes in the specified directory
         """
-        static_path = args['static']
-        input_file = args['input']
+        static_path = TinySSG.args['static']
+        input_file = TinySSG.args['input']
 
         try:
             prev_dont_write_bytecode = sys.dont_write_bytecode
@@ -278,7 +273,7 @@ class TinySSGGenerator:
 
             routes = {}
 
-            full_pages_path = TinySSGUtility.get_fullpath(args, 'page')
+            full_pages_path = TinySSGUtility.get_fullpath('page')
             page_counter = 0
 
             for root, dirs, files in os.walk(full_pages_path):
@@ -384,11 +379,11 @@ class TinySSGGenerator:
         return result
 
     @classmethod
-    def generate_routes(cls, args: dict) -> dict:
+    def generate_routes(cls) -> dict:
         """
         Generate HTML content dictionary from Page classes
         """
-        route = cls.search_route(args)
+        route = cls.search_route()
         return cls.traverse_route(route)
 
     @classmethod
@@ -407,30 +402,36 @@ class TinySSGGenerator:
                     f.write(value)
 
     @classmethod
-    def generator_start(cls, args: dict) -> None:
+    def generator_start(cls) -> None:
         """
         Generate HTML files from Page classes
         """
-        input_full_path = TinySSGUtility.get_fullpath(args, 'page')
+        TinySSGUtility.log_print('Page generation start...')
+        start_time = time.perf_counter()
+
+        input_full_path = TinySSGUtility.get_fullpath('page')
 
         if not os.path.isdir(input_full_path):
             raise TinySSGException(f"The specified page directory does not exist. ({input_full_path})")
 
-        page_data = cls.generate_routes(args)
-        output_full_path = TinySSGUtility.get_fullpath(args, 'output')
+        page_data = cls.generate_routes()
+        output_full_path = TinySSGUtility.get_fullpath('output')
 
         if not os.path.exists(output_full_path):
             os.makedirs(output_full_path)
 
         cls.output_file(page_data, output_full_path)
 
-        static_full_path = TinySSGUtility.get_fullpath(args, 'static')
-        output_static_full_path = os.path.join(output_full_path, args['static'])
+        static_full_path = TinySSGUtility.get_fullpath('static')
+        output_static_full_path = os.path.join(output_full_path, TinySSG.args['static'])
 
         if os.path.isdir(static_full_path):
             if not os.path.exists(output_static_full_path):
                 os.makedirs(output_static_full_path)
             shutil.copytree(static_full_path, output_static_full_path, dirs_exist_ok=True)
+
+        end_time = time.perf_counter()
+        TinySSGUtility.log_print('Page generation time: {:.2f} sec'.format((end_time-start_time)/60))
 
 
 class TinySSGDebugHTTPServer(HTTPServer):
@@ -588,15 +589,19 @@ class TinySSGDebug:
         TinySSGUtility.error_print(process.stderr.read() if process.stderr else '')
 
     @classmethod
-    def server_start(cls, args: dict) -> None:
+    def server_start(cls) -> None:
         """
         Run the debug server
         """
-        reload = args['mode'] == 'servreload'
-        route = TinySSGGenerator.generate_routes(args)
-        server_address = ('', args['port'])
-        httpd = TinySSGDebugHTTPServer(server_address, TinySSGDebugHTTPHandler, args, route, reload)
-        TinySSGUtility.error_print(f"Starting server on http://localhost:{args['port']}/{args['output']}/")
+        reload = TinySSG.args['mode'] == 'servreload'
+        TinySSGUtility.log_print('Page generation start...')
+        start_time = time.perf_counter()
+        route = TinySSGGenerator.generate_routes()
+        end_time = time.perf_counter()
+        TinySSGUtility.log_print('Page generation time: {:.2f} sec'.format((end_time-start_time)/60))
+        server_address = ('', TinySSG.args['port'])
+        httpd = TinySSGDebugHTTPServer(server_address, TinySSGDebugHTTPHandler, TinySSG.args, route, reload)
+        TinySSGUtility.error_print(f"Starting server on http://localhost:{TinySSG.args['port']}/{TinySSG.args['output']}/")
         httpd.serve_forever()
 
 
@@ -605,7 +610,7 @@ class TinySSGLauncher:
     Watchdog and Server Launcher
     """
     @classmethod
-    def check_for_changes(cls, mod_time: float, args: dict, pathlits: list) -> bool:
+    def check_for_changes(cls, mod_time: float, pathlits: list) -> bool:
         """
         Check for changes in the specified directories
         """
@@ -623,7 +628,7 @@ class TinySSGLauncher:
                 new_mod_time = max(path_times)
 
             if new_mod_time > mod_time:
-                mod_time = new_mod_time + args['wait']
+                mod_time = new_mod_time + TinySSG.args['wait']
                 return True, mod_time
         except Exception as e:
             TinySSGUtility.log_print(f"update check warning: {e}")
@@ -631,21 +636,21 @@ class TinySSGLauncher:
         return False, mod_time
 
     @classmethod
-    def launch_server(cls, args: dict, reload: bool) -> None:
+    def launch_server(cls, reload: bool) -> None:
         """
         Launch the server
         """
         servcommand = 'serv' if not reload else 'servreload'
 
-        newargv = args.copy()
+        newargv = TinySSG.args.copy()
         newargv['mode'] = servcommand
 
         command = [sys.executable, '-m', 'tinyssg', '--config', f"{json.dumps(newargv)}", 'config']
 
         process = subprocess.Popen(
             command,
-            stdout=None if not args['nolog'] else subprocess.PIPE,
-            stderr=None if not args['nolog'] else subprocess.PIPE,
+            stdout=None if not TinySSG.args['nolog'] else subprocess.PIPE,
+            stderr=None if not TinySSG.args['nolog'] else subprocess.PIPE,
             text=True,
             encoding='utf-8'
         )
@@ -660,11 +665,11 @@ class TinySSGLauncher:
             return None
 
     @classmethod
-    def open_browser(cls, args: dict) -> None:
+    def open_browser(cls) -> bool:
         """
         Open the browser or Display Jupyter Iframe
         """
-        url = f"http://localhost:{args['port']}/{args['output']}/"
+        url = f"http://localhost:{TinySSG.args['port']}/{TinySSG.args['output']}/"
 
         is_jupyter = False
 
@@ -678,22 +683,24 @@ class TinySSGLauncher:
 
         if is_jupyter:
             from IPython import display
-            display.display(display.IFrame(url, width=args['jwidth'], height=args['jheight']))
+            display.display(display.IFrame(url, width=TinySSG.args['jwidth'], height=TinySSG.args['jheight']))
         else:
             webbrowser.open(url)
 
+        return is_jupyter
+
     @classmethod
-    def launcher_start(cls, args: dict) -> None:
+    def launcher_start(cls) -> None:
         """
         Launch the debug server and file change detection
         """
-        if isinstance(args['curdir'], str) and len(args['curdir']) > 0:
-            os.chdir(args['curdir'])
+        if isinstance(TinySSG.args['curdir'], str) and len(TinySSG.args['curdir']) > 0:
+            os.chdir(TinySSG.args['curdir'])
 
         cur_dir = os.getcwd()
-        page_dir = os.path.join(cur_dir, args['page'])
-        static_dir = os.path.join(cur_dir, args['static'])
-        lib_dir = os.path.join(cur_dir, args['lib'])
+        page_dir = os.path.join(cur_dir, TinySSG.args['page'])
+        static_dir = os.path.join(cur_dir, TinySSG.args['static'])
+        lib_dir = os.path.join(cur_dir, TinySSG.args['lib'])
         mod_time = 0.0
         should_reload = False
 
@@ -708,16 +715,18 @@ class TinySSGLauncher:
         if os.path.isdir(lib_dir):
             check_dirs.append(lib_dir)
 
-        if not args['noreload']:
-            _, mod_time = cls.check_for_changes(0.0, args, check_dirs)
+        if not TinySSG.args['noreload']:
+            _, mod_time = cls.check_for_changes(0.0, check_dirs)
 
-        process = cls.launch_server(args, False)
+        process = cls.launch_server(False)
 
         if process is None:
             return
 
-        if not args['noopen']:
-            cls.open_browser(args)
+        if not TinySSG.args['noopen']:
+            is_jupyter = cls.open_browser()
+            if is_jupyter:
+                TinySSG.args['nolog'] = True
 
         while True:
             try:
@@ -726,13 +735,13 @@ class TinySSGLauncher:
                     TinySSGUtility.log_print('Server stopped.')
                     TinySSGDebug.server_stop_output(process)
                     break
-                if not args['noreload']:
-                    should_reload, mod_time = cls.check_for_changes(mod_time, args, check_dirs)
+                if not TinySSG.args['noreload']:
+                    should_reload, mod_time = cls.check_for_changes(mod_time, check_dirs)
                 if should_reload:
                     TinySSGUtility.log_print('File changed. Reloading...')
                     TinySSGDebug.stop_server(process)
                     time.sleep(1)
-                    process = cls.launch_server(args, True)
+                    process = cls.launch_server(True)
             except KeyboardInterrupt:
                 TinySSGDebug.stop_server(process)
                 TinySSGUtility.error_print('Server stopped.')
@@ -751,19 +760,21 @@ class TinySSG:
         """
         exitcode = 0
 
+        cls.args = args
+
         try:
             if args['mode'] == 'gen':
                 if args['input'] == '':
-                    TinySSGUtility.clear_start(args)
-                TinySSGGenerator.generator_start(args)
+                    TinySSGUtility.clear_start()
+                TinySSGGenerator.generator_start()
                 TinySSGUtility.log_print('HTML files generated.')
             elif args['mode'] == 'dev':
-                TinySSGLauncher.launcher_start(args)
+                TinySSGLauncher.launcher_start()
             elif args['mode'] == 'cls':
-                TinySSGUtility.clear_start(args)
+                TinySSGUtility.clear_start()
                 TinySSGUtility.log_print('Output directory cleared.')
             elif args['mode'] == 'serv' or args['mode'] == 'servreload':
-                TinySSGDebug.server_start(args)
+                TinySSGDebug.server_start()
             elif args['mode'] == 'config':
                 config = json.loads(args['config'])
                 default_args = cls.get_default_arg_dict()
